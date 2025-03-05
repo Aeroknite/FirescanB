@@ -2,8 +2,8 @@ import praw
 import os
 import time
 import logging
-import requests
 import random
+from transformers import pipeline  # Import the pipeline function
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,9 +18,11 @@ reddit = praw.Reddit(
     user_agent="fire_scan_bot"
 )
 
-# Hugging Face API token (set this in Railway environment variables)
-huggingface_api_token = os.getenv("HF_API_KEY")
-huggingface_model = "mistralai/Mistral-Small-24B-Instruct-2501"  # Free model
+# Hugging Face model to use for text generation (DeepSeek model)
+huggingface_model = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"  # Use DeepSeek model
+
+# Initialize the Hugging Face pipeline
+pipe = pipeline("text-generation", model=huggingface_model)
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
@@ -34,28 +36,19 @@ prompts = [
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, allowing people to quickly report fires while AI processes multiple data sources for accurate early detection. How can AI-powered platforms like FireScan empower local communities? Write a Reddit discussion post."
 ]
 
-# Function to generate a wildfire-related post using Hugging Face API
+# Function to generate a wildfire-related post using Hugging Face API (via pipeline)
 def generate_post():
     prompt = random.choice(prompts)  # Select a random prompt
     logger.info(f"Generating post with prompt: {prompt}")
 
-    response = requests.post(
-        f"https://api-inference.huggingface.co/models/{huggingface_model}",
-        headers={"Authorization": f"Bearer {huggingface_api_token}"},
-        json={"inputs": prompt}
-    )
-    
-    if response.status_code == 200:
-        content = response.json()[0]['generated_text']
-        logger.info("Successfully generated post content.")
-    else:
-        logger.error(f"Error generating post: {response.status_code}, {response.text}")
-        return "Error generating post", "Please try again later"
+    # Use the pipeline to generate text based on the prompt
+    generated_content = pipe(prompt)[0]['generated_text']
+    logger.info(f"Successfully generated post content: {generated_content[:100]}...")  # Log the start of the content for brevity
 
     # Split the response into title & body
-    lines = content.split("\n", 1)
+    lines = generated_content.split("\n", 1)
     title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
-    body = lines[1] if len(lines) > 1 else content
+    body = lines[1] if len(lines) > 1 else generated_content
 
     logger.info(f"Generated title: {title}")
     logger.info(f"Generated body: {body[:100]}...")  # Log the start of the body for brevity
