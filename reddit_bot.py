@@ -1,8 +1,9 @@
 import praw
 import os
 import time
-import openai
 import random
+from transformers import GPTJForCausalLM, GPT2Tokenizer
+import torch
 
 # Reddit API authentication
 reddit = praw.Reddit(
@@ -13,25 +14,25 @@ reddit = praw.Reddit(
     user_agent="fire_scan_bot"
 )
 
-# OpenAI API Key (set this in Railway environment variables)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load the GPT-J model and tokenizer from Hugging Face
+model_name = "EleutherAI/gpt-j-6B"
+tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+model = GPTJForCausalLM.from_pretrained(model_name)
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
 
-# Function to generate a wildfire-related post using OpenAI
+# Function to generate a wildfire-related post using GPT-J
 def generate_post():
     prompt = "Write a Reddit post about a recent wildfire, its impact, and how FireScan helps detect and mitigate wildfires using AI-powered drones."
     
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",  # or "gpt-4" if available
-        messages=[{"role": "system", "content": prompt}],
-        max_tokens=250
-    )
+    # Encode the prompt and generate a response using GPT-J
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(inputs['input_ids'], max_length=250, num_return_sequences=1, no_repeat_ngram_size=2, top_p=0.95, temperature=0.7)
 
-    content = response["choices"][0]["message"]["content"]
-    
-    # Split the response into title & body
+    # Decode the output and split it into title and body
+    content = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
     lines = content.split("\n", 1)
     title = lines[0] if len(lines) > 1 else "🔥 FireScan: The Future of Wildfire Prevention"
     body = lines[1] if len(lines) > 1 else content
