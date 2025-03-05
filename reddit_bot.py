@@ -3,7 +3,7 @@ import os
 import time
 import logging
 import random
-from transformers import pipeline
+import requests
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,10 +20,7 @@ reddit = praw.Reddit(
 
 # Hugging Face API token (set this in Railway environment variables)
 huggingface_api_token = os.getenv("HF_API_KEY")
-huggingface_model = "EleutherAI/gpt-neo-2.7B"  # Updated to use EleutherAI/gpt-neo-2.7B model
-
-# Set up Hugging Face text-generation pipeline
-pipe = pipeline("text-generation", model=huggingface_model, use_auth_token=huggingface_api_token)
+huggingface_model = "EleutherAI/gpt-neo-2.7B"  # Model hosted on Hugging Face API
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
@@ -37,16 +34,22 @@ prompts = [
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, allowing people to quickly report fires while AI processes multiple data sources for accurate early detection. How can AI-powered platforms like FireScan empower local communities? Write a Reddit discussion post."
 ]
 
-# Function to generate a wildfire-related post using Hugging Face pipeline
+# Function to generate a wildfire-related post using Hugging Face API
 def generate_post():
     prompt = random.choice(prompts)  # Select a random prompt
     logger.info(f"Generating post with prompt: {prompt}")
 
-    try:
-        content = pipe(prompt, max_length=300, num_return_sequences=1)[0]['generated_text']
+    response = requests.post(
+        f"https://api-inference.huggingface.co/models/{huggingface_model}",
+        headers={"Authorization": f"Bearer {huggingface_api_token}"},
+        json={"inputs": prompt, "parameters": {"max_length": 300, "do_sample": True}}
+    )
+    
+    if response.status_code == 200:
+        content = response.json()[0]['generated_text']
         logger.info("Successfully generated post content.")
-    except Exception as e:
-        logger.error(f"Error generating post: {e}")
+    else:
+        logger.error(f"Error generating post: {response.status_code}, {response.text}")
         return "Error generating post", "Please try again later"
 
     # Split the response into title & body
