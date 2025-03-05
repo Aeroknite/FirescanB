@@ -1,9 +1,13 @@
 import praw
 import os
 import time
-import random
-from transformers import GPTJForCausalLM, GPT2Tokenizer
-import torch
+import logging
+from transformers import GPT2LMHeadModel, GPT2Tokenizer  # Smaller model (GPT-2)
+import requests
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Reddit API authentication
 reddit = praw.Reddit(
@@ -14,38 +18,54 @@ reddit = praw.Reddit(
     user_agent="fire_scan_bot"
 )
 
-# Load the GPT-J model and tokenizer from Hugging Face
-model_name = "EleutherAI/gpt-j-6B"
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-model = GPTJForCausalLM.from_pretrained(model_name)
+# Hugging Face API token (set this in Railway environment variables)
+huggingface_api_token = os.getenv("HF_API_KEY")
+huggingface_model = "gpt2"  # Using GPT-2, a smaller model
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
 
-# Function to generate a wildfire-related post using GPT-J
+# Function to generate a wildfire-related post using Hugging Face API
 def generate_post():
     prompt = "Write a Reddit post about a recent wildfire, its impact, and how FireScan helps detect and mitigate wildfires using AI-powered drones."
+
+    logger.info("Generating post using Hugging Face API...")
+
+    # Call Hugging Face API to generate the text
+    response = requests.post(
+        f"https://api-inference.huggingface.co/models/{huggingface_model}",
+        headers={"Authorization": f"Bearer {huggingface_api_token}"},
+        json={"inputs": prompt}
+    )
     
-    # Encode the prompt and generate a response using GPT-J
-    inputs = tokenizer(prompt, return_tensors="pt")
-    outputs = model.generate(inputs['input_ids'], max_length=250, num_return_sequences=1, no_repeat_ngram_size=2, top_p=0.95, temperature=0.7)
+    if response.status_code == 200:
+        content = response.json()[0]['generated_text']
+        logger.info("Successfully generated post content.")
+    else:
+        logger.error(f"Error generating post: {response.status_code}, {response.text}")
+        return "Error generating post", "Please try again later"
 
-    # Decode the output and split it into title and body
-    content = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
+    # Split the response into title & body
     lines = content.split("\n", 1)
     title = lines[0] if len(lines) > 1 else "🔥 FireScan: The Future of Wildfire Prevention"
     body = lines[1] if len(lines) > 1 else content
+
+    logger.info(f"Generated title: {title}")
+    logger.info(f"Generated body: {body[:100]}...")  # Log the start of the body for brevity
 
     return title, body
 
 # Function to submit a post
 def post_to_reddit():
+    logger.info("Posting to Reddit...")
     title, body = generate_post()
     subreddit.submit(title=title, selftext=body)
-    print(f"✅ Posted: {title}")
+    logger.info(f"✅ Posted: {title}")
 
 # Run the bot 3 times a day
 while True:
-    post_to_reddit()
+    try:
+        post_to_reddit()
+    except Exception as e:
+        logger.error(f"Error occurred: {e}")
     time.sleep(8 * 60 * 60)  # Wait 8 hours (8 hours * 60 min * 60 sec)
