@@ -20,7 +20,7 @@ reddit = praw.Reddit(
 
 # Hugging Face API token (set this in Railway environment variables)
 huggingface_api_token = os.getenv("HF_API_KEY")
-huggingface_model = "mistralai/Mistral-7B-Instruct"  # Free model
+huggingface_model = "mistralai/Mistral-Small-24B-Instruct-2501"  # Free model
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
