@@ -2,8 +2,8 @@ import praw
 import os
 import time
 import logging
-from transformers import GPT2LMHeadModel, GPT2Tokenizer  # Smaller model (GPT-2)
 import requests
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,18 +20,25 @@ reddit = praw.Reddit(
 
 # Hugging Face API token (set this in Railway environment variables)
 huggingface_api_token = os.getenv("HF_API_KEY")
-huggingface_model = "gpt2"  # Using GPT-2, a smaller model
+huggingface_model = "meta-llama/Llama-2-7b-chat-hf"  # Using LLaMA 2
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
 
+# List of prompts for variety
+prompts = [
+    "Write a Reddit post about a recent wildfire, its impact, and how FireScan helps detect and mitigate wildfires using AI-powered drones. FireScan integrates multiple satellite data sources for early wildfire detection and prediction, providing real-time insights to firefighters.",
+    "How can AI-powered systems like FireScan prevent wildfires before they get out of control? Write a discussion post about the role of AI in early wildfire detection, using real-time satellite data and predictive models.",
+    "FireScan is an AI-driven wildfire detection and response system. It integrates multiple satellite sources, advanced sensing capabilities, and autonomous drone deployment to help firefighters combat wildfires effectively. Write a Reddit post discussing how this technology can transform wildfire management.",
+    "A wildfire broke out in [insert location]. FireScan, an AI-driven wildfire detection platform, was able to provide early warnings, helping firefighters deploy resources efficiently. Write a news-style Reddit post discussing how AI and drones can improve wildfire response times.",
+    "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, allowing people to quickly report fires while AI processes multiple data sources for accurate early detection. How can AI-powered platforms like FireScan empower local communities? Write a Reddit discussion post."
+]
+
 # Function to generate a wildfire-related post using Hugging Face API
 def generate_post():
-    prompt = "Write a Reddit post about a recent wildfire, its impact, and how FireScan helps detect and mitigate wildfires using AI-powered drones."
+    prompt = random.choice(prompts)  # Select a random prompt
+    logger.info(f"Generating post with prompt: {prompt}")
 
-    logger.info("Generating post using Hugging Face API...")
-
-    # Call Hugging Face API to generate the text
     response = requests.post(
         f"https://api-inference.huggingface.co/models/{huggingface_model}",
         headers={"Authorization": f"Bearer {huggingface_api_token}"},
@@ -47,7 +54,7 @@ def generate_post():
 
     # Split the response into title & body
     lines = content.split("\n", 1)
-    title = lines[0] if len(lines) > 1 else "🔥 FireScan: The Future of Wildfire Prevention"
+    title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
     body = lines[1] if len(lines) > 1 else content
 
     logger.info(f"Generated title: {title}")
