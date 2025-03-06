@@ -20,7 +20,7 @@ reddit = praw.Reddit(
 
 # Hugging Face API token (set this in Railway environment variables)
 huggingface_api_token = os.getenv("HF_API_KEY")
-huggingface_model = "EleutherAI/gpt-neo-125M"  # Smaller model to reduce timeout issues
+huggingface_model = "distilgpt2"  # Smaller model to reduce timeout issues
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
