@@ -40,7 +40,7 @@ def generate_post():
     try:
         # Use the new client-based method for chat completions
         response = client.chat.completions.create(
-            model="gpt-4",  # or use "gpt-3.5-turbo" if preferred
+            model="gpt-3.5-turbo",  # or use "gpt-3.5-turbo" if preferred
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7
