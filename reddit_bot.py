@@ -3,7 +3,7 @@ import os
 import time
 import logging
 import random
-import openai  # ✅ Corrected OpenAI import
+from openai import OpenAI  # Import the new OpenAI client class
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,8 +18,8 @@ reddit = praw.Reddit(
     user_agent="fire_scan_bot"
 )
 
-# OpenAI API key (set this in Railway environment variables)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Instantiate the OpenAI client with your API key
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Target subreddit
 subreddit = reddit.subreddit("wildfire")
@@ -33,29 +33,30 @@ prompts = [
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, allowing people to quickly report fires while AI processes multiple data sources for accurate early detection. How can AI-powered platforms like FireScan empower local communities? Write a Reddit discussion post."
 ]
 
-# Function to generate a wildfire-related post using OpenAI GPT-4
 def generate_post():
-    prompt = random.choice(prompts)  # Select a random prompt
+    prompt = random.choice(prompts)
     logger.info(f"Generating post with prompt: {prompt}")
 
     try:
-        response = openai.Completion.create(  # Change to Completion.create
-            model="gpt-3.5",  # You can choose to use GPT-4 or GPT-3.5
-            prompt=prompt,
+        # Use the new client-based method for chat completions
+        response = client.chat.completions.create(
+            model="gpt-4",  # or use "gpt-3.5-turbo" if preferred
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
             temperature=0.7
         )
 
-        content = response["choices"][0]["text"].strip()  # Change to access 'text'
+        # Access the content from the Pydantic model response
+        content = response.choices[0].message.content.strip()
         logger.info("Successfully generated post content.")
 
-        # Split the response into title & body
+        # Split response into title and body (if applicable)
         lines = content.split("\n", 1)
         title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
         body = lines[1] if len(lines) > 1 else content
 
         logger.info(f"Generated title: {title}")
-        logger.info(f"Generated body: {body[:100]}...")  # Log the start of the body for brevity
+        logger.info(f"Generated body: {body[:100]}...")  # Log the beginning of the body for brevity
 
         return title, body
 
@@ -63,20 +64,19 @@ def generate_post():
         logger.error(f"Error generating post: {e}")
         return "Error generating post", "Please try again later"
 
-# Function to submit a post
 def post_to_reddit():
     logger.info("Posting to Reddit...")
     title, body = generate_post()
-    if "Error" not in title:  # Avoid posting error messages
+    if "Error" not in title:  # Avoid posting if there was an error
         subreddit.submit(title=title, selftext=body)
         logger.info(f"✅ Posted: {title}")
     else:
         logger.warning("Skipping post due to generation error.")
 
-# Run the bot 3 times a day
+# Run the bot every 8 hours (3 times per day)
 while True:
     try:
         post_to_reddit()
     except Exception as e:
         logger.error(f"Error occurred: {e}")
-    time.sleep(8 * 60 * 60)  # Wait 8 hours (8 hours * 60 min * 60 sec)
+    time.sleep(8 * 60 * 60)  # Sleep for 8 hours
