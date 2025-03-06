@@ -33,20 +33,20 @@ prompts = [
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, allowing people to quickly report fires while AI processes multiple data sources for accurate early detection. How can AI-powered platforms like FireScan empower local communities? Write a Reddit discussion post."
 ]
 
-# Function to generate a wildfire-related post using OpenAI GPT-3.5/4
+# Function to generate a wildfire-related post using OpenAI GPT-4
 def generate_post():
     prompt = random.choice(prompts)  # Select a random prompt
     logger.info(f"Generating post with prompt: {prompt}")
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Use GPT-4 if needed
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=200
+        response = openai.Completion.create(  # Change to Completion.create
+            model="gpt-3.5",  # You can choose to use GPT-4 or GPT-3.5
+            prompt=prompt,
+            max_tokens=200,
+            temperature=0.7
         )
 
-        content = response["choices"][0]["message"]["content"].strip()
+        content = response["choices"][0]["text"].strip()  # Change to access 'text'
         logger.info("Successfully generated post content.")
 
         # Split the response into title & body
