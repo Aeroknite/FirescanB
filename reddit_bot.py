@@ -26,7 +26,7 @@ prompts = [
     "Write a Reddit post about a recent wildfire, its impact, and how FireScan helps detect and mitigate wildfires using AI-powered drones. FireScan integrates multiple satellite data sources for early wildfire detection and prediction, providing real-time insights to firefighters.",
     "How can AI-powered systems like FireScan prevent wildfires before they get out of control? Write a discussion post about the role of AI in early wildfire detection, using real-time satellite data and predictive models.",
     "FireScan is an AI-driven wildfire detection and response system. It integrates multiple satellite sources, advanced sensing capabilities, and autonomous drone deployment to help firefighters combat wildfires effectively. Write a Reddit post discussing how this technology can transform wildfire management.",
-    "A wildfire broke out in [insert location]. FireScan, an AI-driven wildfire detection platform, provided early warnings that helped firefighters deploy resources efficiently. Write a news-style Reddit post discussing how AI and drones improve wildfire response times.",
+    "A wildfire broke out in Australia and California. FireScan, an AI-driven wildfire detection platform, provided early warnings that helped firefighters deploy resources efficiently. Write a news-style Reddit post discussing how AI and drones improve wildfire response times.",
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, quickly alerting authorities as AI processes multiple data sources for early detection. Write a Reddit discussion post about the importance of rapid wildfire reporting."
 ]
 
