@@ -3,7 +3,7 @@ import os
 import time
 import logging
 import random
-import requests
+from groq import Groq
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,7 +15,7 @@ reddit = praw.Reddit(
     client_secret=os.getenv("CLIENT_SECRET"),
     username=os.getenv("USERNAME"),
     password=os.getenv("PASSWORD"),
-    user_agent="firescan_llama2_bot"
+    user_agent="firescan_deepseek_bot"
 )
 
 # Target subreddit
@@ -30,46 +30,26 @@ prompts = [
     "Wildfires are becoming more frequent and severe. FireScan acts as a community fire reporting tool, quickly alerting authorities as AI processes multiple data sources for early detection. Write a Reddit discussion post about the importance of rapid wildfire reporting."
 ]
 
-# Hugging Face Inference API endpoint for LLaMA2 Chat model
-# (Here we use the 7B chat variant; adjust model_id as needed.)
-MODEL_ID = "meta-llama/Llama-2-7b-chat-hf"
-HF_API_URL = f"https://api-inference.huggingface.co/models/{MODEL_ID}"
-HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+# Groq (DeepSeek) API client setup
+groq_api_key = os.getenv("GROQ_API_KEY")
+groq_client = Groq(api_key=groq_api_key)
 
-# Function to generate a post using LLaMA2 via Hugging Face Inference API
+# Function to generate a post using Groq's Chat API (DeepSeek inference)
 def generate_post():
     prompt = random.choice(prompts)
     logger.info(f"Generating post with prompt: {prompt}")
     
-    headers = {
-        "Authorization": f"Bearer {HF_API_KEY}"
-    }
-    
-    # For a chat model, you can include a chat-like context.
-    # Here we simply send the prompt as input.
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 200,
-            "temperature": 0.7,
-            "do_sample": True
-        }
-    }
-    
     try:
-        response = requests.post(HF_API_URL, headers=headers, json=payload)
-        if response.status_code != 200:
-            error_msg = f"Error code: {response.status_code} - {response.json()}"
-            logger.error(error_msg)
-            return "Error generating post", error_msg
+        chat_completion = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",  # Use the desired DeepSeek model via Groq
+            stream=False
+        )
         
-        result = response.json()
-        # The Hugging Face API for text generation returns a list.
-        # We assume the first item contains our generated text.
-        generated_text = result[0]["generated_text"].strip()
+        generated_text = chat_completion.choices[0].message.content.strip()
         logger.info("Successfully generated post content.")
         
-        # Split into title and body (if newline exists)
+        # Split into title and body (if a newline exists)
         lines = generated_text.split("\n", 1)
         title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
         body = lines[1] if len(lines) > 1 else generated_text
