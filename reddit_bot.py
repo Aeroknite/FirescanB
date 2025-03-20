@@ -5,6 +5,7 @@ import logging
 import random
 import re
 from groq import Groq
+import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,16 @@ prompts = [
 groq_api_key = os.getenv("GROQ_API_KEY")
 groq_client = Groq(api_key=groq_api_key)
 
+# Twitter API client setup using Tweepy
+twitter_api_key = os.getenv("TWITTER_API_KEY")
+twitter_api_key_secret = os.getenv("TWITTER_API_KEY_SECRET")
+twitter_access_token = os.getenv("TWITTER_ACCESS_TOKEN")
+twitter_access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+
+auth = tweepy.OAuth1UserHandler(twitter_api_key, twitter_api_key_secret,
+                                twitter_access_token, twitter_access_token_secret)
+twitter_client = tweepy.API(auth)
+
 # Function to generate a post using Groq's Chat API (DeepSeek inference)
 def generate_post():
     prompt = random.choice(prompts)
@@ -55,7 +66,7 @@ def generate_post():
         title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
         body = lines[1] if len(lines) > 1 else generated_text
         
-        # Remove any markdown and "Title:" prefix from the beginning of the title
+        # Remove any markdown and "Title:" prefix from the title
         title = title.strip()
         title = re.sub(r"^\*+\s*title:\s*", "", title, flags=re.IGNORECASE)
         if title.lower().startswith("title:"):
@@ -74,19 +85,36 @@ def generate_post():
         logger.error(f"Error generating post: {e}")
         return "Error generating post", str(e)
 
-def post_to_reddit():
-    logger.info("Posting to Reddit...")
+# Function to post to Twitter
+def post_to_twitter(title, body):
+    # For Twitter, we'll tweet the title plus a link to FireScan.
+    tweet_text = f"{title}\n\nLearn more at: https://firescan.app/"
+    # Ensure tweet_text is within Twitter's 280 character limit:
+    if len(tweet_text) > 280:
+        tweet_text = tweet_text[:277] + "..."
+    try:
+        twitter_client.update_status(tweet_text)
+        logger.info("✅ Posted to Twitter")
+    except Exception as e:
+        logger.error(f"Error posting to Twitter: {e}")
+
+# Function to post to Reddit and Twitter
+def post_to_social():
+    logger.info("Posting to social platforms...")
     title, body = generate_post()
     if "Error" not in title:
+        # Post to Reddit
         subreddit.submit(title=title, selftext=body)
-        logger.info(f"✅ Posted: {title}")
+        logger.info(f"✅ Posted to Reddit: {title}")
+        # Post to Twitter
+        post_to_twitter(title, body)
     else:
         logger.warning("Skipping post due to generation error.")
 
 # Run the bot every 8 hours (3 posts per day)
 while True:
     try:
-        post_to_reddit()
+        post_to_social()
     except Exception as e:
         logger.error(f"Error occurred: {e}")
     time.sleep(8 * 60 * 60)  # 8 hours
