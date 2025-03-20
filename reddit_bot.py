@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import random
+import re
 from groq import Groq
 
 # Set up logging
@@ -54,8 +55,9 @@ def generate_post():
         title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
         body = lines[1] if len(lines) > 1 else generated_text
         
-        # Remove the word "title:" (ignoring case and leading whitespace)
-        title = title.lstrip()
+        # Remove any markdown and "Title:" prefix from the beginning of the title
+        title = title.strip()
+        title = re.sub(r"^\*+\s*title:\s*", "", title, flags=re.IGNORECASE)
         if title.lower().startswith("title:"):
             title = title[len("title:"):].strip()
         
