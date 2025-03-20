@@ -49,14 +49,15 @@ def generate_post():
         generated_text = chat_completion.choices[0].message.content.strip()
         logger.info("Successfully generated post content.")
         
-        # Split into title and body (if newline exists)
+        # Split into title and body (if a newline exists)
         lines = generated_text.split("\n", 1)
         title = lines[0] if len(lines) > 1 else "🔥 FireScan: AI for Wildfire Prevention"
         body = lines[1] if len(lines) > 1 else generated_text
         
-        # Remove the word "title" if present at the start of the title (case-insensitive)
+        # Remove the word "title:" (ignoring case and leading whitespace)
+        title = title.lstrip()
         if title.lower().startswith("title:"):
-            title = title[6:].strip()
+            title = title[len("title:"):].strip()
         
         # Append FireScan link to the body
         firescan_link = "\n\nLearn more at: https://firescan.app/"
